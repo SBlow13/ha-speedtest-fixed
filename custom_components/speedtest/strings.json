@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Speedtest",
+        "description": "Configure your internet speed test.",
+        "data": {
+          "server_id": "Speedtest Server ID (optional - leave blank for automatic)",
+          "update_interval": "Update interval (minutes)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to run initial speed test. Check your internet connection.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "Speedtest is already configured."
+    }
+  },
+  "services": {
+    "run_speedtest": {
+      "name": "Run speedtest",
+      "description": "Immediately runs a speed test and updates the sensors."
+    }
+  }
+}

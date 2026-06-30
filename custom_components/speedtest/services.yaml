@@ -1,0 +1,7 @@
+run_speedtest:
+  name: Run Speedtest
+  description: Immediately runs a speed test and updates the sensors.
+  target:
+    entity:
+      integration: speedtest
+      domain: sensor
