@@ -10,14 +10,9 @@ import tarfile
 import tempfile
 import urllib.request
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from .const import CONF_SERVER_ID, CONF_UPDATE_INTERVAL, DOMAIN
 
-from .const import CONF_SERVER_ID, CONF_UPDATE_INTERVAL, DOMAIN, SENSOR_TYPES
-
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS = ["sensor"]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,9 +77,11 @@ def _run_speedtest_binary(server_id):
     return json.loads(result.stdout)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass, entry):
     coordinator = SpeedtestDataUpdateCoordinator(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+    from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 
     entry.async_on_unload(
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, coordinator.first_refresh)
@@ -100,18 +97,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-    return unload_ok
+async def async_unload_entry(hass, entry):
+    hass.data[DOMAIN].pop(entry.entry_id)
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-class SpeedtestDataUpdateCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+class SpeedtestDataUpdateCoordinator:
+    def __init__(self, hass, entry):
+        from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
         self.server_id = entry.data.get(CONF_SERVER_ID)
         update_interval = entry.data.get(CONF_UPDATE_INTERVAL, 60)
-        super().__init__(
+        self._UpdateFailed = UpdateFailed
+        self._coordinator = DataUpdateCoordinator(
             hass,
             _LOGGER,
             name=DOMAIN,
@@ -119,12 +117,29 @@ class SpeedtestDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(minutes=update_interval),
         )
 
+    @property
+    def data(self):
+        return self._coordinator.data
+
+    @property
+    def last_update_success(self):
+        return self._coordinator.last_update_success
+
+    def async_add_listener(self, callback):
+        return self._coordinator.async_add_listener(callback)
+
+    def async_remove_listener(self, callback):
+        return self._coordinator.async_remove_listener(callback)
+
+    async def async_refresh(self):
+        await self._coordinator.async_refresh()
+
     async def first_refresh(self, _=None):
         await self.async_refresh()
 
     async def _async_update_data(self):
         try:
-            data = await self.hass.async_add_executor_job(
+            data = await self._coordinator.hass.async_add_executor_job(
                 _run_speedtest_binary, self.server_id
             )
             return {
@@ -142,4 +157,4 @@ class SpeedtestDataUpdateCoordinator(DataUpdateCoordinator):
                 "timestamp": data.get("timestamp"),
             }
         except Exception as err:
-            raise UpdateFailed(f"Speedtest failed: {err}") from err
+            raise self._UpdateFailed(f"Speedtest failed: {err}") from err
