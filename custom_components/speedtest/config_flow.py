@@ -22,19 +22,11 @@ DATA_SCHEMA = vol.Schema(
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    from . import _run_speedtest_binary
+
     try:
-        import speedtest
-
-        def _run_test():
-            st = speedtest.Speedtest()
-            server_id = data.get(CONF_SERVER_ID)
-            if server_id:
-                st.get_servers([server_id])
-            else:
-                st.get_best_server()
-            return True
-
-        await hass.async_add_executor_job(_run_test)
+        server_id = data.get(CONF_SERVER_ID)
+        await hass.async_add_executor_job(_run_speedtest_binary, server_id)
     except Exception as err:
         raise CannotConnect from err
 

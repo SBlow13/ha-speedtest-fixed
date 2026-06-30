@@ -25,12 +25,16 @@ SENSOR_TYPES = {
         "icon": "mdi:upload-network",
         "state_class": "measurement",
     },
+    "jitter": {
+        "name": "Jitter",
+        "native_unit_of_measurement": TIME_MILLISECONDS,
+        "icon": "mdi:timeline-alert",
+        "state_class": "measurement",
+    },
+    "packet_loss": {
+        "name": "Packet Loss",
+        "native_unit_of_measurement": "%",
+        "icon": "mdi:percent",
+        "state_class": "measurement",
+    },
 }
-
-STARTUP_MESSAGE = f"""
--------------------------------------------------------------------
-{DOMAIN}
-Version: %s
-This is a custom integration for running internet speed tests.
--------------------------------------------------------------------
-"""
